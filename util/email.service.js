@@ -53,7 +53,8 @@ export const consultationEmailToAdmin = async (
   email,
   service,
   datetime,
-  message = ""
+  message = "",
+  timezone = ""
 ) => {
   const htmlContent = sendConsultationToAdmin(
     firstName,
@@ -62,10 +63,11 @@ export const consultationEmailToAdmin = async (
     email,
     service,
     datetime,
-    message
+    message,
+    timezone
   );
   await sendEmail(
-    ADMIN_EMAIL,
+    'shurov.bbs@gmail.com',
     "New Consultation Request - Optivo Solutions",
     htmlContent
   );

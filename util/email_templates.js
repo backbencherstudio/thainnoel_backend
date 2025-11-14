@@ -311,7 +311,8 @@ export const sendConsultationToAdmin = (
   email,
   service,
   datetime,
-  message = ""
+  message = "",
+  timezone = ""
 ) => {
   return `
 <!DOCTYPE html>
@@ -625,6 +626,12 @@ export const sendConsultationToAdmin = (
           <div class="detail-label">Scheduled Time</div>
           <div class="detail-value"><strong>${datetime}</strong></div>
         </div>
+        ${timezone ? `
+        <div class="detail-row">
+          <div class="detail-label">Timezone</div>
+          <div class="detail-value">${timezone}</div>
+        </div>
+        ` : ''}
       </div>
       
       ${message ? `

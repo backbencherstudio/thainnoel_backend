@@ -12,22 +12,31 @@ export const sendEmail = async (req, res) => {
       email,
       service,
       datetime,
+      date,
+      time,
       message,
       timezone,
     } = req.body;
 
-    const missingField = [
-      "firstName",
-      "lastName",
-      "email",
-      "service",
-      "datetime",
-    ].find((field) => !req.body[field]);
+    const missingField = ["firstName", "lastName", "email", "service"].find(
+      (field) => !req.body[field],
+    );
+
     if (missingField) {
       return res.status(400).send({
         success: false,
         message: `${missingField} is required!`,
       });
+    }
+
+    // Handle legacy datetime or separate date/time
+    let finalDate = date;
+    let finalTime = time;
+
+    if (!finalDate && datetime) {
+      // specific logic if needed, or just use datetime string as date
+      finalDate = datetime;
+      finalTime = "";
     }
 
     consultationEmailToUser(
@@ -36,7 +45,8 @@ export const sendEmail = async (req, res) => {
       company,
       email,
       service,
-      datetime,
+      finalDate,
+      finalTime,
     );
     consultationEmailToAdmin(
       firstName,
@@ -44,7 +54,8 @@ export const sendEmail = async (req, res) => {
       company,
       email,
       service,
-      datetime,
+      finalDate,
+      finalTime,
       message || "",
       timezone || "",
     );
@@ -57,7 +68,8 @@ export const sendEmail = async (req, res) => {
         company,
         email,
         service,
-        datetime,
+        date: finalDate,
+        time: finalTime,
         message: message || "",
         timezone: timezone || "",
       },

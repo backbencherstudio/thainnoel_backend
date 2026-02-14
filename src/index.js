@@ -4,6 +4,11 @@ import cors from "cors";
 import db_connect from "./config/db.config.js";
 import messageRoutes from "./routes/message.route.js";
 import emailRoutes from "./routes/email.route.js";
+import consultationRoutes from "./routes/consultation.route.js";
+import authRoutes from "./routes/auth.route.js";
+import contactRoutes from "./routes/contact.route.js";
+import "./workers/email.worker.js";
+
 import {
   errorHandler,
   notFoundHandler,
@@ -38,6 +43,9 @@ app.get("/", (req, res) => {
 // Register routes
 app.use("/", messageRoutes);
 app.use("/", emailRoutes);
+app.use("/", consultationRoutes);
+app.use("/", authRoutes);
+app.use("/", contactRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);

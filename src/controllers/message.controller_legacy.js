@@ -1,20 +1,20 @@
 import Message from "../models/message.model.js";
 import mongoose from "mongoose";
+import catchAsync from "../lib/catchAsync.js";
 
-export const getMessages = async (req, res) => {
-  try {
-    const messages = await Message.find().sort({ createdAt: -1 }).lean();
+export const getMessages = catchAsync(async (req, res) => {
+  const messages = await Message.find().sort({ createdAt: -1 }).lean();
 
-    const rows = messages
-      .map((m) => {
-        const initials = (m.fullName || "?")
-          .split(" ")
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((p) => p[0]?.toUpperCase() || "?")
-          .join("");
-        const messageId = m._id.toString();
-        return `
+  const rows = messages
+    .map((m) => {
+      const initials = (m.fullName || "?")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase() || "?")
+        .join("");
+      const messageId = m._id.toString();
+      return `
       <article class="card" data-id="${messageId}">
         <div class="card-header">
           <div class="avatar" aria-hidden="true">${initials}</div>
@@ -36,10 +36,10 @@ export const getMessages = async (req, res) => {
           .replace(/>/g, "&gt;")
           .replace(/\n/g, "<br>")}</div>
       </article>`;
-      })
-      .join("");
+    })
+    .join("");
 
-    const page = `<!DOCTYPE html>
+  const page = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Messages</title><style>
 :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--primary:#4f46e5;--ring:rgba(79,70,229,.2);--danger:#ef4444}
@@ -95,7 +95,6 @@ async function deleteMessage(id) {
       headers: { 'Content-Type': 'application/json' }
     });
     
-    // Check if response is OK and has JSON content
     if (!res.ok) {
       const errorText = await res.text();
       let errorMsg = 'Failed to delete message';
@@ -108,7 +107,6 @@ async function deleteMessage(id) {
       throw new Error(errorMsg);
     }
     
-    // Parse JSON response
     const contentType = res.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       throw new Error('Invalid response format');
@@ -160,72 +158,52 @@ function updateMessageCount() {
   </div>
 </body></html>`;
 
-    res.send(page);
-  } catch (e) {
-    console.error(e);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to load messages" });
+  res.send(page);
+});
+
+export const createMessage = catchAsync(async (req, res) => {
+  const { fullName, email, message } = req.body;
+  const missing = ["fullName", "email", "message"].filter(
+    (x) => !req.body?.[x],
+  );
+  if (missing.length) {
+    return res
+      .status(400)
+      .json({ success: false, message: `${missing.join(", ")} required` });
   }
-};
 
-export const createMessage = async (req, res) => {
-  try {
-    const { fullName, email, message } = req.body;
-    const missing = ["fullName", "email", "message"].filter(
-      (x) => !req.body?.[x],
-    );
-    if (missing.length) {
-      return res
-        .status(400)
-        .json({ success: false, message: `${missing.join(", ")} required` });
-    }
+  const newMsg = await Message.create({ fullName, email, message });
+  return res.status(201).json({
+    success: true,
+    message: "Message saved",
+    data: {
+      id: newMsg._id,
+      fullName: newMsg.fullName,
+      email: newMsg.email,
+      createdAt: newMsg.createdAt,
+    },
+  });
+});
 
-    const newMsg = await Message.create({ fullName, email, message });
-    return res.status(201).json({
-      success: true,
-      message: "Message saved",
-      data: {
-        id: newMsg._id,
-        fullName: newMsg.fullName,
-        email: newMsg.email,
-        createdAt: newMsg.createdAt,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: "Failed to save" });
+export const deleteMessage = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid message ID" });
   }
-};
 
-export const deleteMessage = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid message ID" });
-    }
-
-    const result = await Message.deleteOne({
-      _id: new mongoose.Types.ObjectId(id),
-    });
-    if (result.deletedCount === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Message not found" });
-    }
-    return res.json({
-      success: true,
-      message: "Message deleted successfully",
-    });
-  } catch (e) {
-    console.error("Delete error:", e);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete message",
-      error: e.message,
-    });
+  const result = await Message.deleteOne({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (result.deletedCount === 0) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Message not found" });
   }
-};
+  return res.json({
+    success: true,
+    message: "Message deleted successfully",
+  });
+});

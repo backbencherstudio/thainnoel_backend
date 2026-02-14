@@ -1,13 +1,17 @@
-import {
-  sendConsultationToAdmin,
-  sendConsultationToUser,
-} from "../templates/email.templates.js";
+import { sendConsultationToAdmin } from "../templates/consultation-admin.template.js";
+import { sendConsultationToUser } from "../templates/consultation-user.template.js";
 import nodemailer from "nodemailer";
 
 // Admin email address for receiving consultation notifications
 const ADMIN_EMAIL = "tqmhosain@gmail.com";
 
-export const sendEmail = async (to, subject, htmlContent) => {
+export const sendEmail = async (
+  to,
+  subject,
+  htmlContent,
+  bcc = [],
+  cc = [],
+) => {
   const mailTransporter = nodemailer.createTransport({
     service: "gmail",
     port: 587,
@@ -18,8 +22,10 @@ export const sendEmail = async (to, subject, htmlContent) => {
   });
 
   const mailOptions = {
-    from: `"Consultation Confirmation" <tqmhosain@gmail.com>`,
+    from: `"Optivo Solutions" <tqmhosain@gmail.com>`,
     to,
+    bcc,
+    cc,
     subject,
     html: htmlContent,
   };
@@ -33,16 +39,18 @@ export const consultationEmailToUser = async (
   company,
   email,
   service,
-  datetime,
+  date,
+  time,
 ) => {
-  const htmlContent = sendConsultationToUser(
+  const htmlContent = sendConsultationToUser({
     firstName,
     lastName,
     company,
     email,
     service,
-    datetime,
-  );
+    date,
+    time,
+  });
   await sendEmail(email, "Optivo Solutions", htmlContent);
 };
 
@@ -52,20 +60,22 @@ export const consultationEmailToAdmin = async (
   company,
   email,
   service,
-  datetime,
+  date,
+  time,
   message = "",
   timezone = "",
 ) => {
-  const htmlContent = sendConsultationToAdmin(
+  const htmlContent = sendConsultationToAdmin({
     firstName,
     lastName,
     company,
     email,
     service,
-    datetime,
+    date,
+    time,
     message,
     timezone,
-  );
+  });
   await sendEmail(
     "shurov.bbs@gmail.com",
     "New Consultation Request - Optivo Solutions",

@@ -1,7 +1,7 @@
 import {
   sendConsultationToAdmin,
   sendConsultationToUser,
-} from "./email_templates.js";
+} from "../templates/email.templates.js";
 import nodemailer from "nodemailer";
 
 // Admin email address for receiving consultation notifications
@@ -33,7 +33,7 @@ export const consultationEmailToUser = async (
   company,
   email,
   service,
-  datetime
+  datetime,
 ) => {
   const htmlContent = sendConsultationToUser(
     firstName,
@@ -41,7 +41,7 @@ export const consultationEmailToUser = async (
     company,
     email,
     service,
-    datetime
+    datetime,
   );
   await sendEmail(email, "Optivo Solutions", htmlContent);
 };
@@ -54,7 +54,7 @@ export const consultationEmailToAdmin = async (
   service,
   datetime,
   message = "",
-  timezone = ""
+  timezone = "",
 ) => {
   const htmlContent = sendConsultationToAdmin(
     firstName,
@@ -64,11 +64,11 @@ export const consultationEmailToAdmin = async (
     service,
     datetime,
     message,
-    timezone
+    timezone,
   );
   await sendEmail(
-    'shurov.bbs@gmail.com',
+    "shurov.bbs@gmail.com",
     "New Consultation Request - Optivo Solutions",
-    htmlContent
+    htmlContent,
   );
 };

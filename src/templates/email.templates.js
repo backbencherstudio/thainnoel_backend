@@ -4,7 +4,7 @@ export const sendConsultationToUser = (
   company,
   email,
   service,
-  datetime
+  datetime,
 ) => {
   return `
 <!DOCTYPE html>
@@ -312,7 +312,7 @@ export const sendConsultationToAdmin = (
   service,
   datetime,
   message = "",
-  timezone = ""
+  timezone = "",
 ) => {
   return `
 <!DOCTYPE html>
@@ -626,21 +626,29 @@ export const sendConsultationToAdmin = (
           <div class="detail-label">Scheduled Time</div>
           <div class="detail-value"><strong>${datetime}</strong></div>
         </div>
-        ${timezone ? `
+        ${
+          timezone
+            ? `
         <div class="detail-row">
           <div class="detail-label">Timezone</div>
           <div class="detail-value">${timezone}</div>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
       
-      ${message ? `
+      ${
+        message
+          ? `
       <div class="section-title">Client Message</div>
       <div class="message-container">
         <h4>Message from Client</h4>
         <p>${message}</p>
       </div>
-      ` : ''}
+      `
+          : ""
+      }
       
       <div class="quick-actions">
         <h4>Quick Actions</h4>
@@ -676,6 +684,3 @@ export const sendConsultationToAdmin = (
 </html>
   `;
 };
-
-// ESM exports above
-

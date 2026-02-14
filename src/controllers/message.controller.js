@@ -1,138 +1,7 @@
-import createApp from "./lib/library.js";
-import db_connect from "./db/db.config.js";
-import Message from "./models/Message.js";
+import Message from "../models/message.model.js";
 import mongoose from "mongoose";
-import {
-  consultationEmailToUser,
-  consultationEmailToAdmin,
-} from "./util/email.service.js";
 
-const app = createApp();
-// ---------- CORS middleware (no policy, fully open) ----------
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
-
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
-
-  next();
-});
-
-app.cors = () => (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  next();
-};
-
-
-app.use(app.json());
-app.use(app.urlencoded({ extended: true }));
-
-app.post("/email", async (req, res) => {
-  try {
-    const { firstName, lastName, company, email, service, datetime, message, timezone } = req.body;
-
-    const missingField = [
-      "firstName",
-      "lastName",
-      "email",
-      "service",
-      "datetime",
-    ].find((field) => !req.body[field]);
-    if (missingField) {
-      return res.status(400).send({
-        success: false,
-        message: `${missingField} is required!`,
-      });
-    }
-
-    consultationEmailToUser(
-      firstName,
-      lastName,
-      company,
-      email,
-      service,
-      datetime
-    );
-    consultationEmailToAdmin(
-      firstName,
-      lastName,
-      company,
-      email,
-      service,
-      datetime,
-      message || "",
-      timezone || ""
-    );
-
-    res.status(200).json({
-      success: true,
-      data: {
-        firstName,
-        lastName,
-        company,
-        email,
-        service,
-        datetime,
-        message: message || "",
-        timezone: timezone || "",
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "internal server error",
-      error: error.message,
-    });
-  }
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
-app.post("/message", async (req, res) => {
-  try {
-    const { fullName, email, message } = req.body;
-    const missing = ["fullName", "email", "message"].filter(
-      (x) => !req.body?.[x]
-    );
-    if (missing.length) {
-      return res
-        .status(400)
-        .json({ success: false, message: `${missing.join(", ")} required` });
-    }
-
-    const newMsg = await Message.create({ fullName, email, message });
-    return res.status(201).json({
-      success: true,
-      message: "Message saved",
-      data: {
-        id: newMsg._id,
-        fullName: newMsg.fullName,
-        email: newMsg.email,
-        createdAt: newMsg.createdAt,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: "Failed to save" });
-  }
-});
-
-app.get("/messages", async (req, res) => {
+export const getMessages = async (req, res) => {
   try {
     const messages = await Message.find().sort({ createdAt: -1 }).lean();
 
@@ -298,39 +167,65 @@ function updateMessageCount() {
       .status(500)
       .json({ success: false, message: "Failed to load messages" });
   }
-});
+};
 
-
-app.use((req, res, next) => {
-  if (req.method === "DELETE" && req.url.startsWith("/messages/") && req.url !== "/messages") {
-    const urlParts = req.url.split("/");
-    if (urlParts.length === 3 && urlParts[1] === "messages" && urlParts[2]) {
-      const id = urlParts[2];
-      
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ success: false, message: "Invalid message ID" });
-      }
-
-      Message.deleteOne({ _id: new mongoose.Types.ObjectId(id) })
-        .then((result) => {
-          if (result.deletedCount === 0) {
-            return res.status(404).json({ success: false, message: "Message not found" });
-          }
-          return res.json({ success: true, message: "Message deleted successfully" });
-        })
-        .catch((e) => {
-          console.error("Delete error:", e);
-          return res.status(500).json({ success: false, message: "Failed to delete message", error: e.message });
-        });
-      return;
+export const createMessage = async (req, res) => {
+  try {
+    const { fullName, email, message } = req.body;
+    const missing = ["fullName", "email", "message"].filter(
+      (x) => !req.body?.[x],
+    );
+    if (missing.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: `${missing.join(", ")} required` });
     }
-  }
-  
-  next();
-});
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}`);
-  db_connect();
-});
+    const newMsg = await Message.create({ fullName, email, message });
+    return res.status(201).json({
+      success: true,
+      message: "Message saved",
+      data: {
+        id: newMsg._id,
+        fullName: newMsg.fullName,
+        email: newMsg.email,
+        createdAt: newMsg.createdAt,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ success: false, message: "Failed to save" });
+  }
+};
+
+export const deleteMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid message ID" });
+    }
+
+    const result = await Message.deleteOne({
+      _id: new mongoose.Types.ObjectId(id),
+    });
+    if (result.deletedCount === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
+    }
+    return res.json({
+      success: true,
+      message: "Message deleted successfully",
+    });
+  } catch (e) {
+    console.error("Delete error:", e);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete message",
+      error: e.message,
+    });
+  }
+};

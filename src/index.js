@@ -7,6 +7,9 @@ import emailRoutes from "./routes/email.route.js";
 import consultationRoutes from "./routes/consultation.route.js";
 import authRoutes from "./routes/auth.route.js";
 import contactRoutes from "./routes/contact.route.js";
+import scheduleRoutes from "./routes/schedule.route.js";
+import timeSlotRoutes from "./routes/timeSlot.route.js";
+import newsLetterRoutes from "./routes/newsletter.route.js";
 import "./workers/email.worker.js";
 
 import {
@@ -44,6 +47,9 @@ app.get("/", (req, res) => {
 app.use("/", messageRoutes);
 app.use("/", emailRoutes);
 app.use("/", consultationRoutes);
+app.use("/", scheduleRoutes);
+app.use("/", timeSlotRoutes);
+app.use("/", newsLetterRoutes);
 app.use("/", authRoutes);
 app.use("/", contactRoutes);
 

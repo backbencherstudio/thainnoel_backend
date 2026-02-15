@@ -1,16 +1,31 @@
 import { Types } from "mongoose";
 import catchAsync from "../lib/catchAsync.js";
-import Newsletter from "../models/newsletter.model.js";
-import Subscriber from "../models/subscribers.model.js";
 import SubscriptionMail from "../models/subscriptionmail.model.js";
 import { emailQueue } from "../lib/queue.js";
+import Subscriber from "../models/subscriber.model.js";
 
 const getAllSubscribers = catchAsync(async (req, res) => {
-  const subscribers = await Newsletter.find();
+  const { page = 1, limit = 10, search = "" } = req.query;
+  const subscribers = await Subscriber.find({
+    email: { $regex: search, $options: "i" },
+  })
+    .select("-__v")
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+  const total = await Subscriber.countDocuments({
+    email: { $regex: search, $options: "i" },
+  });
   res.status(200).json({
     success: true,
     message: "Subscribers fetched successfully",
     data: subscribers,
+    meta_data: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+    },
   });
 });
 
@@ -137,4 +152,27 @@ const sendEmail = catchAsync(async (req, res) => {
   });
 });
 
-export { getAllSubscribers, sendEmail };
+const subscribe = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
+  }
+  const existingSubscriber = await Subscriber.findOne({ email });
+
+  const subscriber = existingSubscriber
+    ? await Subscriber.findOneAndUpdate(
+        { email },
+        { $set: { isSubscribed: true } },
+        { new: true },
+      )
+    : await Subscriber.create({ email });
+  res.status(200).json({
+    success: true,
+    message: "Subscribed successfully",
+  });
+});
+
+export { getAllSubscribers, sendEmail, subscribe };

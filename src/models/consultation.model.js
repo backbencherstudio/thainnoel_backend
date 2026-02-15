@@ -30,13 +30,17 @@ ConsultationSchema.post("save", async function (doc) {
 
     if (doc.status === "rejected") {
       await TimeSlot.findByIdAndUpdate(doc.slot, {
-        isBooked: false,
-        consultation: null,
+        $set: {
+          isBooked: false,
+          consultation: null,
+        },
       });
     } else {
       await TimeSlot.findByIdAndUpdate(doc.slot, {
-        isBooked: true,
-        consultation: doc._id,
+        $set: {
+          isBooked: true,
+          consultation: doc._id,
+        },
       });
     }
   }

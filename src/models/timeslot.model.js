@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 const TimeSlotSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true },
-    startTime: { type: String, required: true, trim: true },
-    endTime: { type: String, required: true, trim: true },
+    startTime: { type: Date, required: true },
+    endTime: { type: Date, required: true },
     isBooked: { type: Boolean, default: false },
     isLocked: { type: Boolean, default: false },
     consultation: {

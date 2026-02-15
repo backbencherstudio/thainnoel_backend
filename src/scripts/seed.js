@@ -43,7 +43,7 @@ const seed = async () => {
       password: hashedPassword,
       role: adminData.role,
     });
-
+    await Schedule.deleteMany({});
     await Schedule.create({});
 
     console.log("✅ Admin user created successfully!");

@@ -8,7 +8,7 @@ import { verifyAdmin } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.get("/timeslot", getAvailableSlots);
-router.get("/timeslot/all", verifyAdmin, getAvailableSlots);
-router.put("/timeslot/:id", verifyAdmin, lockTimeSlot);
+router.get("/admin/timeslot", verifyAdmin, getAvailableSlots);
+router.put("/admin/timeslot/locked", verifyAdmin, lockTimeSlot);
 
 export default router;

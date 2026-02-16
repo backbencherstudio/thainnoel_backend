@@ -3,6 +3,7 @@ import catchAsync from "../lib/catchAsync.js";
 import SubscriptionMail from "../models/subscriptionmail.model.js";
 import { emailQueue } from "../lib/queue.js";
 import Subscriber from "../models/subscriber.model.js";
+import { convertIsoToTimezone } from "../lib/time.js";
 
 const getAllSubscribers = catchAsync(async (req, res) => {
   const { page = 1, limit = 10, search = "" } = req.query;
@@ -175,4 +176,33 @@ const subscribe = catchAsync(async (req, res) => {
   });
 });
 
-export { getAllSubscribers, sendEmail, subscribe };
+const getAllNewsletters = catchAsync(async (req, res) => {
+  const { page = 1, limit = 10, timezone = "Etc/UTC" } = req.query;
+
+  const newsletters = await SubscriptionMail.find()
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(Number(limit))
+    .lean();
+
+  const total = await SubscriptionMail.countDocuments();
+
+  const formattedNewsletters = newsletters.map((newsletter) => ({
+    ...newsletter,
+    sentAt: convertIsoToTimezone(newsletter.sentAt, timezone),
+    createdAt: convertIsoToTimezone(newsletter.createdAt, timezone),
+  }));
+
+  res.status(200).json({
+    success: true,
+    message: "Newsletters fetched successfully",
+    data: formattedNewsletters,
+    meta_data: {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+    },
+  });
+});
+
+export { getAllSubscribers, sendEmail, subscribe, getAllNewsletters };

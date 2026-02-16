@@ -7,16 +7,10 @@ import { sendConsultationToUser } from "../templates/consultation-user.template.
 import { sendConsultationToAdmin } from "../templates/consultation-admin.template.js";
 
 const bookConsultation = catchAsync(async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    company,
-    companyEmail,
-    service,
-    message,
-    slot,
-    timezone,
-  } = req.body;
+  const { firstName, lastName, company, companyEmail, service, message, slot } =
+    req.body;
+
+  const timezone = req.body.timezone || body.timezone || "Etc/UTC";
 
   // 1. Basic Validation
   const requiredFields = [

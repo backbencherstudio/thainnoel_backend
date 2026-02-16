@@ -13,7 +13,6 @@ const DayScheduleSchema = new mongoose.Schema(
 
 const ScheduleSchema = new mongoose.Schema(
   {
-    timeZone: { type: String, trim: true, default: "UTC" },
     sunday: {
       type: DayScheduleSchema,
       default: {

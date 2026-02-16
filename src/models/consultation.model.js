@@ -13,7 +13,6 @@ const ConsultationSchema = new mongoose.Schema(
       ref: "TimeSlot",
       default: null,
     },
-    timezone: { type: String, required: true, trim: true },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

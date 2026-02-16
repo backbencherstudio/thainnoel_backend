@@ -10,6 +10,6 @@ const router = express.Router();
 
 router.get("/schedule", getAllSchedulesPublic);
 router.get("/admin/schedule", verifyAdmin, getAllSchedules);
-router.put("/admin/schedule/:id", verifyAdmin, updateSchedule);
+router.put("/admin/schedule", verifyAdmin, updateSchedule);
 
 export default router;

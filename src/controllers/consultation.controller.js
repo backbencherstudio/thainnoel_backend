@@ -12,8 +12,6 @@ const bookConsultation = catchAsync(async (req, res) => {
   const { firstName, lastName, company, companyEmail, service, message, slot } =
     req.body;
 
-  console.log(slot);
-
   const timezone = req.query.timezone || req.body.timezone || "Etc/UTC";
 
   // 1. Basic Validation
@@ -170,7 +168,13 @@ const bookConsultation = catchAsync(async (req, res) => {
 });
 
 const getAllBookedConsultations = catchAsync(async (req, res) => {
-  const { status, page, limit, search, timezone = "Etc/UTC" } = req.query;
+  const {
+    status,
+    page = 1,
+    limit = 10,
+    search,
+    timezone = "Etc/UTC",
+  } = req.query;
   const query = {};
   if (status) {
     query.status = status;
@@ -189,6 +193,7 @@ const getAllBookedConsultations = catchAsync(async (req, res) => {
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("slot", "startTime endTime isBooked")
+    .select("-__v")
     .sort({ createdAt: -1 })
     .lean(); // Use lean to easily modify the result
 

@@ -90,7 +90,7 @@ const getAvailableSlots = catchAsync(async (req, res) => {
     date: queryDate,
     startTime: { $in: slots.map((s) => s.startTime) },
     endTime: { $in: slots.map((s) => s.endTime) },
-  });
+  }).select("-__v");
 
   const existingSlotMap = {};
   existingSlots.forEach((slot) => {

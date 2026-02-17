@@ -31,7 +31,7 @@ export const sendConsultationToAdmin = ({
       color: #2c3e50;
     }
     .email-wrapper {
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
       background-color: #ffffff;
       border-radius: 16px;

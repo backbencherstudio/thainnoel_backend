@@ -5,12 +5,16 @@ import User from "../models/user.model.js";
 import { emailQueue } from "../lib/queue.js";
 import { sendConsultationToUser } from "../templates/consultation-user.template.js";
 import { sendConsultationToAdmin } from "../templates/consultation-admin.template.js";
+import { fromZonedTime } from "date-fns-tz";
+import { convertIsoToTimezone } from "../lib/time.js";
 
 const bookConsultation = catchAsync(async (req, res) => {
   const { firstName, lastName, company, companyEmail, service, message, slot } =
     req.body;
 
-  const timezone = req.body.timezone || body.timezone || "Etc/UTC";
+  console.log(slot);
+
+  const timezone = req.query.timezone || req.body.timezone || "Etc/UTC";
 
   // 1. Basic Validation
   const requiredFields = [
@@ -41,18 +45,22 @@ const bookConsultation = catchAsync(async (req, res) => {
     const queryDate = new Date(slot.date);
     queryDate.setUTCHours(0, 0, 0, 0);
 
+    // Convert startTime and endTime from request timezone to UTC
+    const start = fromZonedTime(slot.startTime, timezone);
+    const end = fromZonedTime(slot.endTime, timezone);
+
     targetSlot = await TimeSlot.findOne({
       date: queryDate,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+      startTime: start,
+      endTime: end,
     });
 
     if (!targetSlot) {
       // Create new slot if it doesn't exist
       targetSlot = await TimeSlot.create({
         date: queryDate,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+        startTime: start,
+        endTime: end,
       });
     }
   }
@@ -85,11 +93,25 @@ const bookConsultation = catchAsync(async (req, res) => {
   });
 
   // 5. Queue Email Notifications
-  // Format date and time for emails
-  const consultationDate = new Date(targetSlot.date).toLocaleDateString(
-    "en-GB",
-  ); // defaulting to dd/mm/yyyy
-  const consultationTime = `${targetSlot.startTime} - ${targetSlot.endTime}`;
+  // Format date and time for emails using the user's timezone
+  // We explicitly format the UTC dates from the slot to the user's timezone
+  const formattedDate = convertIsoToTimezone(
+    targetSlot.startTime,
+    timezone,
+    "dd/MM/yyyy",
+  );
+  const formattedStartTime = convertIsoToTimezone(
+    targetSlot.startTime,
+    timezone,
+    "HH:mm",
+  );
+  const formattedEndTime = convertIsoToTimezone(
+    targetSlot.endTime,
+    timezone,
+    "HH:mm",
+  );
+
+  const consultationTime = `${formattedStartTime} - ${formattedEndTime}`;
 
   // 5a. Send Confirmation to Client
   const clientHtml = sendConsultationToUser({
@@ -99,7 +121,7 @@ const bookConsultation = catchAsync(async (req, res) => {
     email: companyEmail,
     service,
     timezone,
-    date: consultationDate,
+    date: formattedDate,
     time: consultationTime,
   });
 
@@ -122,7 +144,7 @@ const bookConsultation = catchAsync(async (req, res) => {
       company,
       email: companyEmail,
       service,
-      date: consultationDate,
+      date: formattedDate,
       time: consultationTime,
       message,
     });
@@ -148,7 +170,7 @@ const bookConsultation = catchAsync(async (req, res) => {
 });
 
 const getAllBookedConsultations = catchAsync(async (req, res) => {
-  const { status, page, limit, search } = req.query;
+  const { status, page, limit, search, timezone = "Etc/UTC" } = req.query;
   const query = {};
   if (status) {
     query.status = status;
@@ -167,12 +189,28 @@ const getAllBookedConsultations = catchAsync(async (req, res) => {
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("slot", "startTime endTime isBooked")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean(); // Use lean to easily modify the result
+
   const total = await Consultation.countDocuments(query);
+
+  const formattedConsultations = consultations.map((consultation) => {
+    if (consultation.slot) {
+      consultation.slot.startTime = convertIsoToTimezone(
+        consultation.slot.startTime,
+        timezone,
+      );
+      consultation.slot.endTime = convertIsoToTimezone(
+        consultation.slot.endTime,
+        timezone,
+      );
+    }
+    return consultation;
+  });
 
   return res.status(200).json({
     success: true,
-    data: consultations,
+    data: formattedConsultations,
     meta_data: {
       page,
       limit,

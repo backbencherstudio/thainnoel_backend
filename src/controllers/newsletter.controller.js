@@ -6,11 +6,11 @@ import Subscriber from "../models/subscriber.model.js";
 import { convertIsoToTimezone } from "../lib/time.js";
 
 const getAllSubscribers = catchAsync(async (req, res) => {
-  const { page = 1, limit = 10, search = "" } = req.query;
+  const { page = 1, limit = 10, search = "", timezone = "Etc/UTC" } = req.query;
   const subscribers = await Subscriber.find({
     email: { $regex: search, $options: "i" },
   })
-    .select("-__v")
+    .select("-__v -updatedAt")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
@@ -21,7 +21,12 @@ const getAllSubscribers = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Subscribers fetched successfully",
-    data: subscribers,
+    data: subscribers.map((s) => {
+      return {
+        ...s,
+        createdAt: convertIsoToTimezone(s.createdAt, timezone),
+      };
+    }),
     meta_data: {
       page: Number(page),
       limit: Number(limit),
@@ -127,6 +132,7 @@ const sendEmail = catchAsync(async (req, res) => {
         bcc: recipients.slice(1),
         subject: newsletter.subject,
         htmlContent: newsletter.body,
+        mailId: newsletter._id,
       },
     };
 

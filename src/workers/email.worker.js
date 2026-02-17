@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { sendEmail } from "../services/email.service.js";
+import SubscriptionMail from "../models/subscriptionmail.model.js";
 
 const connection = new IORedis(
   process.env.REDIS_URL || "redis://localhost:6379",
@@ -20,8 +21,21 @@ const emailWorker = new Worker(
       // Pass BCC and CC to sendEmail function
       await sendEmail(to, subject, htmlContent, bcc, cc);
       console.log(`Email sent successfully`);
+
+      // Update the mail status in the database
+      if (job.data.mailId) {
+        await SubscriptionMail.findByIdAndUpdate(job.data.mailId, {
+          status: "sent",
+          sentAt: new Date(),
+        });
+      }
     } catch (error) {
       console.error(`Failed to send email:`, error);
+      if (job.data.mailId) {
+        await SubscriptionMail.findByIdAndUpdate(job.data.mailId, {
+          status: "failed",
+        });
+      }
       throw error;
     }
   },

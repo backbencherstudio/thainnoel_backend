@@ -3,7 +3,11 @@ import { sendConsultationToUser } from "../templates/consultation-user.template.
 import nodemailer from "nodemailer";
 
 // Admin email address for receiving consultation notifications
-const ADMIN_EMAIL = "tqmhosain@gmail.com";
+const MAIL_HOST = process.env.MAIL_HOST;
+const MAIL_PORT = process.env.MAIL_PORT;
+const MAIL_USERNAME = process.env.MAIL_USERNAME;
+const MAIL_PASSWORD = process.env.MAIL_PASSWORD;
+const MAIL_FROM = process.env.MAIL_FROM;
 
 export const sendEmail = async (
   to,
@@ -13,16 +17,16 @@ export const sendEmail = async (
   cc = [],
 ) => {
   const mailTransporter = nodemailer.createTransport({
-    service: "gmail",
-    port: 587,
+    host: MAIL_HOST || "smtp.gmail.com",
+    port: MAIL_PORT || 587,
     auth: {
-      user: "tqmhosain@gmail.com",
-      pass: "meie ueco tptd evod",
+      user: MAIL_USERNAME,
+      pass: MAIL_PASSWORD,
     },
   });
 
   const mailOptions = {
-    from: `"Optivo Solutions" <tqmhosain@gmail.com>`,
+    from: MAIL_FROM || `Optivo Solutions <${MAIL_USERNAME}>`,
     to,
     bcc,
     cc,

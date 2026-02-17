@@ -63,6 +63,9 @@ const getAvailableSlots = catchAsync(async (req, res) => {
     });
   }
 
+  // Ensure dateStr is just YYYY-MM-DD
+  const dateStr = date.includes("T") ? date.split("T")[0] : date;
+
   /* 
      Logic:
      1. Stored openingTime/closingTime are in UTC (e.g., "03:00" for 9am Dhaka).
@@ -72,7 +75,7 @@ const getAvailableSlots = catchAsync(async (req, res) => {
   */
 
   const slots = generateTimeSlots(
-    date, // "YYYY-MM-DD" string
+    dateStr, // "YYYY-MM-DD" string
     daySchedule.openingTime, // UTC "HH:mm"
     daySchedule.closingTime, // UTC "HH:mm"
     daySchedule.slotDuration,
@@ -170,7 +173,11 @@ const generateTimeSlots = (
   };
 
   const openTime = getTimeDate(localOpeningTime);
-  const closeTime = getTimeDate(localClosingTime);
+  let closeTime = getTimeDate(localClosingTime);
+
+  if (closeTime < openTime) {
+    closeTime = new Date(closeTime.getTime() + 24 * 60 * 60 * 1000);
+  }
 
   let currentTime = new Date(openTime);
 

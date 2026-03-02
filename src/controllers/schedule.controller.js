@@ -78,7 +78,7 @@ const updateSchedule = catchAsync(async (req, res) => {
     !body.wednesday ||
     !body.thursday ||
     !body.friday ||
-    !body.timezone
+    !timezone
   ) {
     return res.status(400).json({
       success: false,

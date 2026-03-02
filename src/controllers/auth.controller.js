@@ -63,7 +63,7 @@ const login = catchAsync(async (req, res) => {
 });
 
 const updateProfile = catchAsync(async (req, res) => {
-  const { fullName, email, oldPassword, newPassword } = req.body;
+  const { fullName, oldPassword, newPassword } = req.body;
   const user = await User.findById(req.user.id);
   if (fullName) user.fullName = fullName;
   if (oldPassword && newPassword) {

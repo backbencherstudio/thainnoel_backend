@@ -111,7 +111,19 @@ const forgotPasswordRequest = catchAsync(async (req, res) => {
 });
 
 const resetPassword = catchAsync(async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  const { email, otp, newPassword } = req?.body;
+
+  // make sure caller provided a new password (don't try hashing undefined)
+  if (!newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a newPassword in the request body",
+    });
+  }
+
+  // debug logging can be removed in production
+  console.log(req?.body);
+
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(404).json({

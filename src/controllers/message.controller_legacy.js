@@ -1,151 +1,20 @@
-import createApp from "./lib/library.js";
-import db_connect from "./db/db.config.js";
-import Message from "./models/Message.js";
+import Message from "../models/message.model.js";
 import mongoose from "mongoose";
-import {
-  consultationEmailToUser,
-  consultationEmailToAdmin,
-} from "./util/email.service.js";
+import catchAsync from "../lib/catchAsync.js";
 
-const app = createApp();
-// ---------- CORS middleware (no policy, fully open) ----------
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+export const getMessages = catchAsync(async (req, res) => {
+  const messages = await Message.find().sort({ createdAt: -1 }).lean();
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
-
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
-
-  next();
-});
-
-app.cors = () => (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  next();
-};
-
-
-app.use(app.json());
-app.use(app.urlencoded({ extended: true }));
-
-app.post("/email", async (req, res) => {
-  try {
-    const { firstName, lastName, company, email, service, datetime, message, timezone } = req.body;
-
-    const missingField = [
-      "firstName",
-      "lastName",
-      "email",
-      "service",
-      "datetime",
-    ].find((field) => !req.body[field]);
-    if (missingField) {
-      return res.status(400).send({
-        success: false,
-        message: `${missingField} is required!`,
-      });
-    }
-
-    consultationEmailToUser(
-      firstName,
-      lastName,
-      company,
-      email,
-      service,
-      datetime
-    );
-    consultationEmailToAdmin(
-      firstName,
-      lastName,
-      company,
-      email,
-      service,
-      datetime,
-      message || "",
-      timezone || ""
-    );
-
-    res.status(200).json({
-      success: true,
-      data: {
-        firstName,
-        lastName,
-        company,
-        email,
-        service,
-        datetime,
-        message: message || "",
-        timezone: timezone || "",
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "internal server error",
-      error: error.message,
-    });
-  }
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
-app.post("/message", async (req, res) => {
-  try {
-    const { fullName, email, message } = req.body;
-    const missing = ["fullName", "email", "message"].filter(
-      (x) => !req.body?.[x]
-    );
-    if (missing.length) {
-      return res
-        .status(400)
-        .json({ success: false, message: `${missing.join(", ")} required` });
-    }
-
-    const newMsg = await Message.create({ fullName, email, message });
-    return res.status(201).json({
-      success: true,
-      message: "Message saved",
-      data: {
-        id: newMsg._id,
-        fullName: newMsg.fullName,
-        email: newMsg.email,
-        createdAt: newMsg.createdAt,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ success: false, message: "Failed to save" });
-  }
-});
-
-app.get("/messages", async (req, res) => {
-  try {
-    const messages = await Message.find().sort({ createdAt: -1 }).lean();
-
-    const rows = messages
-      .map((m) => {
-        const initials = (m.fullName || "?")
-          .split(" ")
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((p) => p[0]?.toUpperCase() || "?")
-          .join("");
-        const messageId = m._id.toString();
-        return `
+  const rows = messages
+    .map((m) => {
+      const initials = (m.fullName || "?")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase() || "?")
+        .join("");
+      const messageId = m._id.toString();
+      return `
       <article class="card" data-id="${messageId}">
         <div class="card-header">
           <div class="avatar" aria-hidden="true">${initials}</div>
@@ -167,10 +36,10 @@ app.get("/messages", async (req, res) => {
           .replace(/>/g, "&gt;")
           .replace(/\n/g, "<br>")}</div>
       </article>`;
-      })
-      .join("");
+    })
+    .join("");
 
-    const page = `<!DOCTYPE html>
+  const page = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Messages</title><style>
 :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--primary:#4f46e5;--ring:rgba(79,70,229,.2);--danger:#ef4444}
@@ -226,7 +95,6 @@ async function deleteMessage(id) {
       headers: { 'Content-Type': 'application/json' }
     });
     
-    // Check if response is OK and has JSON content
     if (!res.ok) {
       const errorText = await res.text();
       let errorMsg = 'Failed to delete message';
@@ -239,7 +107,6 @@ async function deleteMessage(id) {
       throw new Error(errorMsg);
     }
     
-    // Parse JSON response
     const contentType = res.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       throw new Error('Invalid response format');
@@ -291,46 +158,52 @@ function updateMessageCount() {
   </div>
 </body></html>`;
 
-    res.send(page);
-  } catch (e) {
-    console.error(e);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to load messages" });
-  }
+  res.send(page);
 });
 
-
-app.use((req, res, next) => {
-  if (req.method === "DELETE" && req.url.startsWith("/messages/") && req.url !== "/messages") {
-    const urlParts = req.url.split("/");
-    if (urlParts.length === 3 && urlParts[1] === "messages" && urlParts[2]) {
-      const id = urlParts[2];
-      
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ success: false, message: "Invalid message ID" });
-      }
-
-      Message.deleteOne({ _id: new mongoose.Types.ObjectId(id) })
-        .then((result) => {
-          if (result.deletedCount === 0) {
-            return res.status(404).json({ success: false, message: "Message not found" });
-          }
-          return res.json({ success: true, message: "Message deleted successfully" });
-        })
-        .catch((e) => {
-          console.error("Delete error:", e);
-          return res.status(500).json({ success: false, message: "Failed to delete message", error: e.message });
-        });
-      return;
-    }
+export const createMessage = catchAsync(async (req, res) => {
+  const { fullName, email, message } = req.body;
+  const missing = ["fullName", "email", "message"].filter(
+    (x) => !req.body?.[x],
+  );
+  if (missing.length) {
+    return res
+      .status(400)
+      .json({ success: false, message: `${missing.join(", ")} required` });
   }
-  
-  next();
+
+  const newMsg = await Message.create({ fullName, email, message });
+  return res.status(201).json({
+    success: true,
+    message: "Message saved",
+    data: {
+      id: newMsg._id,
+      fullName: newMsg.fullName,
+      email: newMsg.email,
+      createdAt: newMsg.createdAt,
+    },
+  });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}`);
-  db_connect();
+export const deleteMessage = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid message ID" });
+  }
+
+  const result = await Message.deleteOne({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (result.deletedCount === 0) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Message not found" });
+  }
+  return res.json({
+    success: true,
+    message: "Message deleted successfully",
+  });
 });

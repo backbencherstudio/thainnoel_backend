@@ -1,8 +1,7 @@
 // lib/db.js
 import mongoose from "mongoose";
 
-const url =
-  "mongodb+srv://tqmhosain_db_user:bgBg8jPfeVHVEEnf@cluster0.jrog93k.mongodb.net/optivo?retryWrites=true&w=majority";
+const url = process.env.MONGODB_URI || "mongodb://localhost:27017/thainnoel";
 
 const db_connect = async () => {
   try {

@@ -22,7 +22,14 @@ const app = express();
 // CORS middleware
 app.use(
   cors({
-    origin:["*","https://thainnoel.vercel.app","http://thainnoel.vercel.app", "http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "https://optivosolutions.vercel.app",
+      "http://optivosolutions.vercel.app",
+      "https://thainnoel.vercel.app",
+      "http://thainnoel.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
